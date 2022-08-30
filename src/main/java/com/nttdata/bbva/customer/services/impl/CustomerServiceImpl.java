@@ -116,7 +116,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
 	@Override
 	public Mono<Customer> findOperationByIdentificationDocumentAndProductId(String identificationDocument, String productId){
-		return  this.findAll()
+		return this.findAll()
 				.filter(c -> c.getIdentificationDocument().equals(identificationDocument))
 				.switchIfEmpty(Mono.error(() -> new ModelNotFoundException("CLIENTE NO ENCONTRADO")))
 				.flatMap(customer -> {
@@ -125,14 +125,14 @@ public class CustomerServiceImpl implements ICustomerService {
 					return openAccountClient.findAll()
 							.filter(openAccount -> openAccount.getCustomerId().equals(customerID) && openAccount.getProductId().equals(productId))
 							.switchIfEmpty(Mono.error(() -> new ModelNotFoundException("EL CLIENTE NO TIENE UN CONTRATO CON EL PRODUCTO ::: " + productId)))
-							.flatMap( openAccount ->  operationClient.findByOpenAccountId(openAccount.getId())
-											.map(operation -> { operation.setOpenAccountId(null); return operation; })
-											.collectList()
-											.flatMapMany(operations -> {
-												openAccount.setOperations(operations);
-												return Flux.just(openAccount);
-											})
-									)
+							.flatMap( openAccount -> operationClient.findByOpenAccountId(openAccount.getId())
+									.map(operation -> { operation.setOpenAccountId(null); return operation; })
+									.collectList()
+									.flatMapMany(operations -> {
+										openAccount.setOperations(operations);
+										return Flux.just(openAccount);
+									})
+							)
 							.map(openAccount -> { openAccount.setProductId(null); openAccount.setCustomerId(null); openAccount.setCustomer(null); return openAccount; })
 							.collectList()
 							.flatMapMany(openAccounts -> {

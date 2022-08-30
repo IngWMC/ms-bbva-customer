@@ -7,6 +7,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -21,13 +22,14 @@ public class OperationClient {
         this.webClient = webClientBuilder.baseUrl("http://localhost:7074/api/1.0.0/operations").build();
     }
 
-    @CircuitBreaker(name = "operation", fallbackMethod = "fallBackFindByOpenAccountId")
+    //@CircuitBreaker(name = "operation", fallbackMethod = "fallBackFindByOpenAccountId")
     public Flux<Operation> findByOpenAccountId(String openAccountId){
         logger.info("Inicio OperationClient ::: findByOpenAccountId ::: " + openAccountId);
         return this.webClient.get()
                 .uri("/openaccounts/{openAccountId}", openAccountId)
                 .retrieve()
-                //.onStatus()
+                .onStatus(HttpStatus.NOT_FOUND::equals,
+                        response -> Mono.error(new ModelNotFoundException("El cliente no tiene operaciones.")))
                 .bodyToFlux(Operation.class)
                 .doOnNext(x -> logger.info("Fin OperationClient ::: findByOpenAccountId"));
     }

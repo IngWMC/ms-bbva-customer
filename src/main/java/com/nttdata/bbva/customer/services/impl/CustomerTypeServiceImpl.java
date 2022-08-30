@@ -1,6 +1,7 @@
 package com.nttdata.bbva.customer.services.impl;
 
 import com.nttdata.bbva.customer.documents.CustomerType;
+import com.nttdata.bbva.customer.exceptions.BadRequestException;
 import com.nttdata.bbva.customer.exceptions.ModelNotFoundException;
 import com.nttdata.bbva.customer.repositories.ICustomerTypeRepository;
 import com.nttdata.bbva.customer.services.ICustomerTypeService;
@@ -26,7 +27,13 @@ public class CustomerTypeServiceImpl implements ICustomerTypeService {
 
 	@Override
 	public Mono<CustomerType> update(CustomerType obj) {
-		return repo.save(obj);
+		if (obj.getId() == null || obj.getId().isEmpty())
+			return Mono.error(() -> new BadRequestException("El campo id es requerido."));
+
+		return repo.findById(obj.getId())
+				.switchIfEmpty(Mono.error(() -> new BadRequestException("El campo id no es válido.")))
+				.flatMap(customerType -> repo.save(obj))
+				.doOnNext(pt -> logger.info("SE ACTUALIZÓ EL TIPO CLIENTE ::: " + pt.getId()));
 	}
 
 	@Override
